@@ -56,6 +56,7 @@ class CGI{
 public:
     typedef             std::pair<std::string, int>                         requestData; 
     typedef             std::pair<ServerContext, LocationContext >          serverLocation;
+    typedef             std::pair<std::string, std::string>                 clientInfo;
 private:
     
     size_t                              _headerSize;
@@ -69,7 +70,7 @@ private:
 
 public:
 
-    CGI(const requestData &data, std::map<std::string, std::string> headers, const serverLocation &serverLocation): 
+    CGI(const requestData &data, std::map<std::string, std::string> headers, const serverLocation &serverLocation, const clientInfo &clientInfo): 
     _headerSize(data.second),
     _headerContent(data.first),
     _encodedURL(_setURL()),
@@ -77,7 +78,7 @@ public:
     _cgiExtension(serverLocation.second.directives.at("cgi_extension")[0]),
     _cgiBinary(serverLocation.second.directives.at("cgi_binary")[0]),
     _mapMetaVars(){
-        _setMapEnvVar(headers, serverLocation.first);
+        _setMapEnvVar(headers, serverLocation, clientInfo);
     }
 
     ~CGI(){
@@ -208,22 +209,22 @@ public:
     };
 
 private:
-    void    _setMapEnvVar(std::map<std::string, std::string> headers, const ServerContext &serverInfo){
+    void    _setMapEnvVar(std::map<std::string, std::string> headers, const serverLocation &serverLocation, const clientInfo &clientInfo){
 
         _setServerSoftware();
         _setServerName(headers);
         _setGatewayInterface();
         _setHtppVariables(headers);
         _setServerProtocol();
-        _setServerPort(serverInfo.directives.find("listen")->second[1]);
+        _setServerPort(serverLocation.first.directives.find("listen")->second[1]);
         _setRequestUri();
         _setRequestMethod();
         _setPathInfo();
         _setPathTranslated();
         _setScriptName();
         _setQueryString();
-        _setRemoteHost();
-        _setRemoteAddr();
+        _setRemoteHost(clientInfo.second);
+        _setRemoteAddr(clientInfo.first);
         _setRemoteUser();
         _setAuthType();
         _setContentType();
@@ -354,16 +355,16 @@ private:
         this->_mapMetaVars.insert(std::make_pair(varName, query));
     }
 
-    void _setRemoteHost(){
+    void _setRemoteHost(const std::string &clientHostName){
         std::string varName("REMOTE_HOST=");
-        std::string host("");
+        std::string host(clientHostName);
 
         this->_mapMetaVars.insert(std::make_pair(varName, host));
     }
 
-    void _setRemoteAddr(){
+    void _setRemoteAddr(const std::string &clientAddr){
         std::string varName("REMOTE_ADDR=");
-        std::string addr("");
+        std::string addr(clientAddr);
 
         this->_mapMetaVars.insert(std::make_pair(varName, addr));
     }
